@@ -58,7 +58,7 @@ locust -f locustfile.py    # load profile, see docs/SCALE.md
   tracking (`received → preparing → out_for_delivery → delivered`).
 - **Opt-in marketing.** Campaigns, follow-ups, win-backs go only to opted-in
   prospects via Meta pre-approved templates. `STOP` opts out instantly.
-- **i18n parity.** English, Spanish, Hindi — 85 keys each, tested for parity.
+- **i18n parity.** English, Spanish, Hindi — full parity, tested. Marathi is a declared partial locale with English fallback.
 - **Stateless runtime.** Every webhook hydrates the session from PostgreSQL
   and persists before returning; horizontal scaling is just more workers.
 
@@ -95,7 +95,7 @@ reproduction steps: [docs/SCALE.md](docs/SCALE.md).
 ```
 src/            FastAPI app, state machine, handlers, compositing, media, i18n
 sql/schema.sql  PostgreSQL 16 schema (applied by compose + CI)
-locales/        en / es / hi — 85 keys each, parity-tested
+locales/        en / es / hi — full parity, parity-tested; mr — partial, EN fallback
 tests/          pytest suite (unit, flows, quality, locales, webhook, real PG)
 docs/           SCALE.md, ARCHITECTURE.md, DEPLOYMENT.md, FAQ, guides
 docker-compose.yml   app + postgres:16-alpine, schema auto-applied

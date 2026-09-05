@@ -66,8 +66,8 @@ SIZE_CLASS_DEFAULT_PRESET = {
 # ── Order statuses (mirror the SQL enum) ───────────────────────────
 OPEN_ORDER_STATUSES = ("received", "preparing", "out_for_delivery")
 
-SUPPORTED_LANGUAGES = ("en", "es", "hi")
-LANGUAGE_OPTIONS = (("1", "en"), ("2", "es"), ("3", "hi"))
+SUPPORTED_LANGUAGES = ("en", "es", "hi", "mr")
+LANGUAGE_OPTIONS = (("1", "en"), ("2", "es"), ("3", "hi"), ("4", "mr"))
 
 # Words (any supported language) that open the language menu mid-chat.
 LANGUAGE_COMMANDS = {"language", "idioma", "भाषा", "lang", "lenguaje"}

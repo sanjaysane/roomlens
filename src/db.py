@@ -58,7 +58,9 @@ class Database(abc.ABC):
 
     # ── prospects ──────────────────────────────────────────────
     @abc.abstractmethod
-    def ensure_prospect(self, phone: str, designer_phone: str = "") -> dict: ...
+    def ensure_prospect(
+        self, phone: str, designer_phone: str = "", language: str = "en"
+    ) -> dict: ...
     @abc.abstractmethod
     def get_prospect(self, phone: str) -> dict | None: ...
     @abc.abstractmethod
@@ -272,7 +274,9 @@ class FakeDatabase(Database):
         return d["id"] if d else None
 
     # ── prospects ──
-    def ensure_prospect(self, phone: str, designer_phone: str = "") -> dict:
+    def ensure_prospect(
+        self, phone: str, designer_phone: str = "", language: str = "en"
+    ) -> dict:
         pid = self.prospects_by_phone.get(phone)
         if pid is not None:
             p = self.prospects[pid]
@@ -284,7 +288,7 @@ class FakeDatabase(Database):
             "phone_number": phone,
             "designer_id": self._designer_id_for_phone(designer_phone),
             "opt_status": "pending",
-            "preferred_language": "en",
+            "preferred_language": language,
             "last_active_at": utcnow(),
             "created_at": utcnow(),
         }
@@ -753,15 +757,17 @@ class PostgresDatabase(Database):
             return [dict(r) for r in cur.fetchall()]
 
     # ── prospects ──
-    def ensure_prospect(self, phone: str, designer_phone: str = "") -> dict:
+    def ensure_prospect(
+        self, phone: str, designer_phone: str = "", language: str = "en"
+    ) -> dict:
         with self._conn() as c, c.cursor() as cur:
             cur.execute(
-                """INSERT INTO prospects (phone_number, designer_id)
+                """INSERT INTO prospects (phone_number, designer_id, preferred_language)
                    VALUES (%s, (SELECT id FROM designers
-                               WHERE phone_number = %s))
+                               WHERE phone_number = %s), %s)
                    ON CONFLICT (phone_number) DO NOTHING
                    RETURNING *""",
-                (phone, designer_phone or None),
+                (phone, designer_phone or None, language),
             )
             row = self._one(cur)
             if row is None:

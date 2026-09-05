@@ -57,7 +57,7 @@ def handle_pick_designer(ctx: Ctx) -> None:
         ctx.reply("p_pick_designer_again")
         return
     designer_phone = phones[choice - 1]
-    ctx.db.ensure_prospect(ctx.phone, designer_phone)
+    ctx.db.ensure_prospect(ctx.phone, designer_phone, ctx.lang)
     ctx.db.set_prospect_opt(ctx.phone, "pending")
     designer = ctx.db.get_designer_by_phone(designer_phone)
     ctx.set_state(M.P_PHOTO, designer_id=(designer or {}).get("id"))
@@ -106,7 +106,7 @@ def handle_photo(ctx: Ctx) -> None:
     ref = ctx.store.save(
         "rooms", f"room-{ctx.phone.strip('+')}.jpg", raw
     )
-    prospect = ctx.db.ensure_prospect(ctx.phone)
+    prospect = ctx.db.ensure_prospect(ctx.phone, language=ctx.lang)
     designer_id = ctx.session["data"].get("designer_id") or prospect.get("designer_id")
     media = ctx.db.add_room_media(
         prospect["id"], designer_id, ref, kind,
