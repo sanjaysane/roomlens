@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest an idea for RoomLens
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need or pain does this address? Who is it for (designer or prospect)?
+      placeholder: Designers want to place two products in one render without restarting…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: "How should it work? Keep the senior-accessible constraint in mind: single-digit replies, no required typing in core flows."
+      placeholder: In the studio adjust step, allow picking a second product before "send"…
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals / honest limits
+      description: What should this explicitly NOT do? (e.g. not true AR, not background removal)
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Prospect flow
+        - Designer flow
+        - Compositing / rendering
+        - Marketing / templates
+        - i18n
+        - Deployment / ops
+        - Other
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checks
+      options:
+        - label: I kept the "no required typing in core flows" constraint in mind
+          required: false
+        - label: This doesn't claim AR capabilities (see README honest-limits box)
+          required: false

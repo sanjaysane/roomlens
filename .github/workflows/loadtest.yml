@@ -1,0 +1,63 @@
+name: Load test (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      users:
+        description: "Concurrent Locust users"
+        default: "50"
+        required: false
+      run_time:
+        description: "How long to run (e.g. 2m)"
+        default: "2m"
+        required: false
+
+jobs:
+  locust:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: roomlens
+          POSTGRES_PASSWORD: roomlens
+          POSTGRES_DB: roomlens
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U roomlens -d roomlens"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          python -m pip install -U pip
+          pip install -r requirements.txt
+      - name: Apply schema
+        env:
+          PGPASSWORD: roomlens
+        run: psql -h localhost -U roomlens -d roomlens -v ON_ERROR_STOP=1 -f sql/schema.sql
+      - name: Start app
+        env:
+          DATABASE_URL: postgresql://roomlens:roomlens@localhost:5432/roomlens
+        run: |
+          nohup uvicorn src.main:app --host 127.0.0.1 --port 8000 \
+            > /tmp/uvicorn.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && break || sleep 2
+          done
+      - name: Run Locust
+        run: |
+          locust -f locustfile.py --headless \
+            -u "${{ inputs.users }}" -r 10 \
+            -t "${{ inputs.run_time }}" \
+            --host http://127.0.0.1:8000 \
+            --csv /tmp/locust --html /tmp/locust.html
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: locust-report
+          path: /tmp/locust*
