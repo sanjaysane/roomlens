@@ -8,7 +8,8 @@ from .. import marketing as mk
 from .. import models as M
 from ..composite import make_placeholder_cutout, render_visualization
 from ..context import Ctx, parse_choice, parse_name, parse_price
-from ..pricing import build_quote, format_money
+from ..display import display_name
+from ..pricing import build_quote, currency_for_locale, format_money
 
 
 def _designer(ctx: Ctx) -> dict:
@@ -59,17 +60,17 @@ def handle_home(ctx: Ctx) -> None:
 
 
 # ── Catalog ────────────────────────────────────────────────────────
-def _product_lines(products: list[dict]) -> str:
+def _product_lines(products: list[dict], lang: str = "en") -> str:
     return "\n".join(
         f"{i + 1}. {p['name']} — "
-        f"{format_money(p['price_cents'], p['currency'])}"
+        f"{format_money(p['price_cents'], currency_for_locale(lang))}"
         for i, p in enumerate(products)
     )
 
 
 def show_catalog(ctx: Ctx) -> None:
     products = ctx.db.list_products(_designer(ctx)["id"])
-    listing = _product_lines(products) if products else ctx.i18n.t(
+    listing = _product_lines(products, ctx.lang) if products else ctx.i18n.t(
         ctx.lang, "d_catalog_empty"
     )
     ctx.reply("d_catalog", products=listing)
@@ -96,7 +97,7 @@ def handle_catalog(ctx: Ctx) -> None:
         ctx.set_state(
             M.D_CAT_REMOVE, products=[p["id"] for p in products]
         )
-        ctx.reply("d_cat_remove_ask", products=_product_lines(products))
+        ctx.reply("d_cat_remove_ask", products=_product_lines(products, ctx.lang))
 
 
 def handle_cat_name(ctx: Ctx) -> None:
@@ -151,7 +152,7 @@ def handle_cat_photo(ctx: Ctx) -> None:
         name=data.get("name", "Untitled"),
         description="",
         price_cents=price_cents,
-        currency="USD",
+        currency=currency_for_locale(ctx.lang),
         size_class=size_class,
         default_preset=M.SIZE_CLASS_DEFAULT_PRESET[size_class],
         cutout_ref=cutout_ref,
@@ -159,7 +160,9 @@ def handle_cat_photo(ctx: Ctx) -> None:
     ctx.set_state(M.D_CATALOG)
     ctx.reply(
         "d_product_added", name=product["name"],
-        price=format_money(product["price_cents"], product["currency"]),
+        price=format_money(
+            product["price_cents"], currency_for_locale(ctx.lang)
+        ),
     )
     show_catalog(ctx)
 
@@ -181,6 +184,17 @@ def handle_cat_remove(ctx: Ctx) -> None:
 
 
 # ── Studio: composite a visualization ──────────────────────────────
+def _prospect_lang(ctx: Ctx, media_id: int | None = None) -> str:
+    """Language of the prospect who sent the room photo (for rendered
+    labels and captions — money formatting follows this locale)."""
+    media_id = media_id or ctx.session["data"].get("media_id")
+    if not media_id:
+        return ctx.lang
+    media = ctx.db.get_room_media(media_id) or {}
+    prospect = ctx.db.get_prospect(media.get("prospect_phone", "")) or {}
+    return prospect.get("preferred_language", "en") or "en"
+
+
 def show_studio(ctx: Ctx) -> None:
     pending = ctx.db.list_pending_media(_designer(ctx)["id"])
     if not pending:
@@ -189,7 +203,8 @@ def show_studio(ctx: Ctx) -> None:
         show_home(ctx)
         return
     lines = [
-        f"{i + 1}. 📸 {m['prospect_phone']}" for i, m in enumerate(pending)
+        f"{i + 1}. 📸 {display_name({'nickname': m.get('prospect_nickname'), 'phone_number': m.get('prospect_phone')})}"
+        for i, m in enumerate(pending)
     ]
     ctx.set_state(M.D_STUDIO, media=[m["id"] for m in pending])
     ctx.reply("d_studio_list", rooms="\n".join(lines))
@@ -217,7 +232,7 @@ def handle_studio(ctx: Ctx) -> None:
         media_id=media["id"],
         products=[p["id"] for p in products],
     )
-    ctx.reply("d_studio_pick_product", products=_product_lines(products))
+    ctx.reply("d_studio_pick_product", products=_product_lines(products, ctx.lang))
 
 
 def handle_studio_product(ctx: Ctx) -> None:
@@ -231,7 +246,9 @@ def handle_studio_product(ctx: Ctx) -> None:
     ctx.reply("d_studio_pick_preset", product=product["name"])
 
 
-def _render_draft(ctx: Ctx, product: dict, preset: str, scale: float) -> bytes:
+def _render_draft(
+    ctx: Ctx, product: dict, preset: str, scale: float, lang: str | None = None
+) -> bytes:
     data = ctx.session["data"]
     media = ctx.db.get_room_media(data["media_id"])
     room_bytes = ctx.store.load(media["storage_ref"])
@@ -243,7 +260,7 @@ def _render_draft(ctx: Ctx, product: dict, preset: str, scale: float) -> bytes:
         cutout = make_placeholder_cutout(product["name"])
     label = (
         f"{product['name']} — "
-        f"{format_money(product['price_cents'], product['currency'])}"
+        f"{format_money(product['price_cents'], currency_for_locale(lang or ctx.lang))}"
     )
     return render_visualization(
         room_bytes,
@@ -258,7 +275,9 @@ def handle_studio_preset(ctx: Ctx) -> None:
         return
     preset = M.PLACEMENT_PRESETS[choice - 1]
     product = ctx.db.get_product(ctx.session["data"]["product_id"])
-    rendered = _render_draft(ctx, product, preset, 1.0)
+    rendered = _render_draft(
+        ctx, product, preset, 1.0, lang=_prospect_lang(ctx)
+    )
     ref = ctx.store.save("renders", f"viz-{product['id']}.jpg", rendered)
     viz = ctx.db.create_visualization(
         prospect_id=ctx.db.get_room_media(
@@ -288,7 +307,8 @@ def handle_studio_adjust(ctx: Ctx) -> None:
     if choice in (1, 2):
         scale = round(data.get("scale", 1.0) * (1.25 if choice == 1 else 0.8), 2)
         scale = max(0.4, min(scale, 2.5))
-        rendered = _render_draft(ctx, product, data["preset"], scale)
+        rendered = _render_draft(ctx, product, data["preset"], scale,
+                                 lang=_prospect_lang(ctx))
         ref = ctx.store.save("renders", f"viz-{product['id']}.jpg", rendered)
         ctx.db.update_visualization(
             viz["id"],
@@ -334,7 +354,9 @@ def handle_studio_adjust(ctx: Ctx) -> None:
         caption = ctx.i18n.t(
             p_lang, "p_viz_caption",
             product=product["name"],
-            price=format_money(product["price_cents"], product["currency"]),
+            price=format_money(
+                product["price_cents"], currency_for_locale(p_lang)
+            ),
         )
         ctx.wa.send_image(prospect_phone, rendered, caption)
         ctx.set_state_for(
@@ -356,7 +378,7 @@ def show_orders(ctx: Ctx) -> None:
         return
     lines = [
         f"{i + 1}. #{o['id']} — "
-        f"{format_money(o['total_cents'], o['currency'])} — "
+        f"{format_money(o['total_cents'], currency_for_locale(ctx.lang))} — "
         f"{o['status'].replace('_', ' ')}"
         for i, o in enumerate(orders)
     ]
@@ -434,7 +456,7 @@ def handle_marketing(ctx: Ctx) -> None:
         show_marketing(ctx)
     else:
         opted_in = ctx.db.get_opted_in_prospects(_designer(ctx)["id"])
-        lines = "\n".join(p["phone_number"] for p in opted_in) or ctx.i18n.t(
+        lines = "\n".join(display_name(p) for p in opted_in) or ctx.i18n.t(
             ctx.lang, "d_optin_empty"
         )
         ctx.reply("d_optin_list", prospects=lines, count=len(opted_in))

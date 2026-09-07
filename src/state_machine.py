@@ -26,6 +26,7 @@ ROUTES = {
     # prospect loop
     (M.ROLE_PROSPECT, M.P_NEW): prospect.handle_new,
     (M.ROLE_PROSPECT, M.P_PICK_DESIGNER): prospect.handle_pick_designer,
+    (M.ROLE_PROSPECT, M.P_NAME): prospect.handle_name,
     (M.ROLE_PROSPECT, M.P_PHOTO): prospect.handle_photo,
     (M.ROLE_PROSPECT, M.P_RETAKE): prospect.handle_photo,
     (M.ROLE_PROSPECT, M.P_WAITING): prospect.handle_waiting,

@@ -66,6 +66,8 @@ class Database(abc.ABC):
     @abc.abstractmethod
     def set_prospect_opt(self, phone: str, status: str) -> None: ...
     @abc.abstractmethod
+    def set_prospect_nickname(self, phone: str, nickname: str) -> None: ...
+    @abc.abstractmethod
     def touch_prospect_active(self, phone: str) -> None: ...
     @abc.abstractmethod
     def get_opted_in_prospects(self, designer_id: int) -> list[dict]: ...
@@ -287,6 +289,7 @@ class FakeDatabase(Database):
             "id": next(self._ids),
             "phone_number": phone,
             "designer_id": self._designer_id_for_phone(designer_phone),
+            "nickname": "",
             "opt_status": "pending",
             "preferred_language": language,
             "last_active_at": utcnow(),
@@ -304,6 +307,11 @@ class FakeDatabase(Database):
         p = self.get_prospect(phone)
         if p is not None:
             p["opt_status"] = status
+
+    def set_prospect_nickname(self, phone: str, nickname: str) -> None:
+        p = self.get_prospect(phone)
+        if p is not None:
+            p["nickname"] = (nickname or "").strip()
 
     def touch_prospect_active(self, phone: str) -> None:
         p = self.get_prospect(phone)
@@ -426,6 +434,7 @@ class FakeDatabase(Database):
         row = dict(m)
         prospect = self.prospects.get(m["prospect_id"], {})
         row["prospect_phone"] = prospect.get("phone_number", "")
+        row["prospect_nickname"] = prospect.get("nickname", "")
         return row
 
     def list_pending_media(self, designer_id: int) -> list[dict]:
@@ -435,6 +444,7 @@ class FakeDatabase(Database):
                 row = dict(m)
                 prospect = self.prospects.get(m["prospect_id"], {})
                 row["prospect_phone"] = prospect.get("phone_number", "")
+                row["prospect_nickname"] = prospect.get("nickname", "")
                 out.append(row)
         return sorted(out, key=lambda m: m["id"])
 
@@ -630,6 +640,7 @@ class FakeDatabase(Database):
                 row = dict(fu)
                 prospect = self.prospects.get(fu["prospect_id"], {})
                 row["prospect_phone"] = prospect.get("phone_number", "")
+                row["prospect_nickname"] = prospect.get("nickname", "")
                 out.append(row)
         return out
 
@@ -800,6 +811,13 @@ class PostgresDatabase(Database):
                 (status, phone),
             )
 
+    def set_prospect_nickname(self, phone: str, nickname: str) -> None:
+        with self._conn() as c, c.cursor() as cur:
+            cur.execute(
+                "UPDATE prospects SET nickname = %s WHERE phone_number = %s",
+                ((nickname or "").strip(), phone),
+            )
+
     def touch_prospect_active(self, phone: str) -> None:
         with self._conn() as c, c.cursor() as cur:
             cur.execute(
@@ -917,7 +935,8 @@ class PostgresDatabase(Database):
     def get_room_media(self, media_id: int) -> dict | None:
         with self._conn() as c, c.cursor() as cur:
             cur.execute(
-                """SELECT rm.*, p.phone_number AS prospect_phone
+                """SELECT rm.*, p.phone_number AS prospect_phone,
+                   p.nickname AS prospect_nickname
                    FROM room_media rm
                    JOIN prospects p ON p.id = rm.prospect_id
                    WHERE rm.id = %s""",
@@ -928,7 +947,8 @@ class PostgresDatabase(Database):
     def list_pending_media(self, designer_id: int) -> list[dict]:
         with self._conn() as c, c.cursor() as cur:
             cur.execute(
-                """SELECT rm.*, p.phone_number AS prospect_phone
+                """SELECT rm.*, p.phone_number AS prospect_phone,
+                   p.nickname AS prospect_nickname
                    FROM room_media rm
                    JOIN prospects p ON p.id = rm.prospect_id
                    WHERE rm.designer_id = %s AND rm.has_visualization = FALSE
@@ -1139,7 +1159,8 @@ class PostgresDatabase(Database):
     def list_due_follow_ups(self, now) -> list[dict]:
         with self._conn() as c, c.cursor() as cur:
             cur.execute(
-                """SELECT f.*, p.phone_number AS prospect_phone
+                """SELECT f.*, p.phone_number AS prospect_phone,
+                   p.nickname AS prospect_nickname
                    FROM follow_ups f
                    JOIN prospects p ON p.id = f.prospect_id
                    WHERE f.status = 'scheduled' AND f.scheduled_for <= %s

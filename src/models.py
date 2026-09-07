@@ -14,6 +14,7 @@ ROLE_PROSPECT = "prospect"
 # ── Prospect states ────────────────────────────────────────────────
 P_NEW = "prospect_new"  # welcome + "1 = designer, 2 = preview furniture"
 P_PICK_DESIGNER = "prospect_pick_designer"  # choose a designer (single digit)
+P_NAME = "prospect_name"  # one-time nickname capture (0 = skip)
 P_PHOTO = "prospect_photo"  # guided room-photo capture
 P_RETAKE = "prospect_retake"  # (same handling as P_PHOTO; kept for clarity)
 P_WAITING = "prospect_waiting"  # preview being prepared

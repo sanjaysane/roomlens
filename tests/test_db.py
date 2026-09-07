@@ -38,10 +38,16 @@ def exercise(db, tag: str):
     assert db.get_designer_by_phone(DPHONE)["id"] == d["id"]
     assert db.list_designers()
     p = db.ensure_prospect(PPHONE, tag)
+    # nickname: empty by default, settable, shown on joined rows
+    assert p.get("nickname") == ""
+    db.set_prospect_nickname(PPHONE, "Asha")
+    assert db.get_prospect(PPHONE)["nickname"] == "Asha"
     m = db.add_room_media(p["id"], d["id"], "local://room1.png", "photo",
                           800, 600, {"verdict": "ok"})
     pending = db.list_pending_media(d["id"])
     assert len(pending) == 1 and pending[0]["id"] == m["id"]
+    assert pending[0]["prospect_nickname"] == "Asha"
+    assert db.get_room_media(m["id"])["prospect_nickname"] == "Asha"
     db.mark_media_visualized(m["id"])
     assert db.list_pending_media(d["id"]) == []
 
@@ -93,6 +99,7 @@ def exercise(db, tag: str):
     fu = db.schedule_follow_up(d["id"], p["id"], "nudge", due)
     dues = db.list_due_follow_ups(datetime.now(timezone.utc))
     assert len(dues) == 1 and dues[0]["prospect_phone"] == PPHONE
+    assert dues[0]["prospect_nickname"] == "Asha"
     db.mark_follow_up_sent(fu["id"])
     assert db.list_due_follow_ups(datetime.now(timezone.utc)) == []
 

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from .. import models as M
 from ..composite import assess_quality, extract_first_frame
-from ..context import Ctx, parse_choice
-from ..pricing import format_money, quote_lines_text
+from ..context import Ctx, parse_choice, parse_name
+from ..display import designer_name, prospect_name
+from ..pricing import currency_for_locale, format_money, quote_lines_text
 
 
 def _designer_phone(ctx: Ctx, prospect: dict) -> str | None:
@@ -15,7 +16,7 @@ def _designer_phone(ctx: Ctx, prospect: dict) -> str | None:
 
 def _designer_name(ctx: Ctx, prospect: dict) -> str:
     designer = ctx.db.get_designer(prospect["designer_id"]) if prospect.get("designer_id") else None
-    return (designer or {}).get("display_name") or "our studio"
+    return designer_name(designer) or "our studio"
 
 
 # ── P_NEW: welcome + role pick ─────────────────────────────────────
@@ -60,8 +61,39 @@ def handle_pick_designer(ctx: Ctx) -> None:
     ctx.db.ensure_prospect(ctx.phone, designer_phone, ctx.lang)
     ctx.db.set_prospect_opt(ctx.phone, "pending")
     designer = ctx.db.get_designer_by_phone(designer_phone)
-    ctx.set_state(M.P_PHOTO, designer_id=(designer or {}).get("id"))
-    ctx.reply("p_photo_ask", designer=(designer or {}).get("display_name", ""))
+    ctx.set_state(M.P_NAME, designer_id=(designer or {}).get("id"))
+    ctx.reply("p_name_ask")
+
+
+# ── P_NAME: one-time nickname capture (0 = skip) ────────────────────
+def handle_name(ctx: Ctx) -> None:
+    # A photo sent at the name prompt = implicit skip: the prospect just
+    # wants to send their room picture. Accept it as if at P_PHOTO so the
+    # name question never blocks the core flow.
+    if ctx.msg_type in ("image", "video"):
+        handle_photo(ctx)
+        return
+    if ctx.text is None:
+        # Re-dispatch after a mid-chat language switch: just re-render
+        # the name prompt, now in the new language.
+        ctx.reply("p_name_ask")
+        return
+    if (ctx.text or "").strip() == "0":
+        _ask_for_photo(ctx)
+        return
+    name = parse_name(ctx.text)
+    if name is None:
+        ctx.reply("p_name_invalid")
+        return
+    ctx.db.set_prospect_nickname(ctx.phone, name)
+    _ask_for_photo(ctx)
+
+
+def _ask_for_photo(ctx: Ctx) -> None:
+    designer_id = ctx.session["data"].get("designer_id")
+    designer = ctx.db.get_designer(designer_id) if designer_id else None
+    ctx.set_state(M.P_PHOTO, designer_id=designer_id)
+    ctx.reply("p_photo_ask", designer=designer_name(designer) or "our studio")
 
 
 # ── P_PHOTO: guided room-photo capture ─────────────────────────────
@@ -117,8 +149,10 @@ def handle_photo(ctx: Ctx) -> None:
         d_lang = (ctx.db.get_user(designer_phone) or {}).get(
             "preferred_language", "en"
         )
+        prospect = ctx.db.get_prospect(ctx.phone) or prospect
         ctx.send_to(
-            designer_phone, "d_new_photo", d_lang, prospect=ctx.phone
+            designer_phone, "d_new_photo", d_lang,
+            prospect=prospect_name(prospect) or ctx.phone,
         )
     ctx.set_state(M.P_WAITING, media_id=media["id"], optin_asked=True)
     ctx.reply("p_photo_ok", designer=_designer_name(ctx, {**prospect, "designer_id": designer_id}))
@@ -149,7 +183,9 @@ def _notify_designer(ctx: Ctx, key: str) -> None:
     phone = _designer_phone(ctx, prospect)
     if phone:
         d_lang = (ctx.db.get_user(phone) or {}).get("preferred_language", "en")
-        ctx.send_to(phone, key, d_lang, prospect=ctx.phone)
+        ctx.send_to(
+            phone, key, d_lang, prospect=prospect_name(prospect) or ctx.phone
+        )
 
 
 def handle_review(ctx: Ctx) -> None:
@@ -169,7 +205,8 @@ def handle_review(ctx: Ctx) -> None:
                 "delivery_cents": quote["delivery_cents"],
                 "total_cents": quote["total_cents"],
                 "currency": quote["currency"],
-            }
+            },
+            lang=ctx.lang,
         )
         ctx.set_state(M.P_ORDER, quote_id=quote["id"], viz_id=data.get("viz_id"))
         ctx.reply("p_order_confirm", lines="\n".join(lines))
@@ -220,7 +257,9 @@ def handle_order(ctx: Ctx) -> None:
         ctx.send_to(
             designer_phone, "d_new_order", d_lang,
             order_id=order["id"],
-            total=format_money(quote["total_cents"], quote["currency"]),
+            total=format_money(
+                quote["total_cents"], currency_for_locale(ctx.lang)
+            ),
         )
     ctx.set_state(M.P_TRACKING, order_id=order["id"])
     ctx.reply("p_order_placed", order_id=order["id"])
@@ -236,7 +275,7 @@ def handle_tracking(ctx: Ctx) -> None:
         return
     lines = [
         f"#{o['id']}: {o['status'].replace('_', ' ')} — "
-        f"{format_money(o['total_cents'], o['currency'])}"
+        f"{format_money(o['total_cents'], currency_for_locale(ctx.lang))}"
         for o in open_orders
     ]
     ctx.reply("p_tracking", orders="\n".join(lines))

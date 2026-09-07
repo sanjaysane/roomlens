@@ -263,14 +263,14 @@ def test_language_switch_mid_chat(chat):
     onboard_designer(chat)
     chat.send(PROSPECT, "hi")
     chat.send(PROSPECT, "2")
-    chat.send(PROSPECT, "1")  # now at photo state, in English
+    chat.send(PROSPECT, "1")  # now at name prompt, in English
     chat.send(PROSPECT, "language")
     # menu renders in the current language (English), naming all options
     assert any("Choose your language" in t for t in chat.texts(PROSPECT))
     chat.send(PROSPECT, "2")  # español
     assert chat.db.get_user(PROSPECT)["preferred_language"] == "es"
-    # back at the photo prompt, now in Spanish
-    assert any("Por favor envía una foto" in t for t in chat.texts(PROSPECT))
+    # back at the name prompt, now in Spanish
+    assert any("¿Cómo te llamas?" in t for t in chat.texts(PROSPECT))
 
 
 # ── Designer catalog management ────────────────────────────────────

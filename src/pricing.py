@@ -7,6 +7,24 @@ from __future__ import annotations
 
 CURRENCY_SYMBOLS = {"USD": "$", "EUR": "€", "INR": "₹", "BRL": "R$"}
 
+# ── Locale-aware display currency ──────────────────────────────────
+# Money is always *rendered* in the viewer's locale currency:
+# Marathi/Hindi users (India) see ₹, English/Spanish users see $.
+# The stored product/quote/order currency columns keep the record
+# of the currency the amount was entered in; display never converts
+# amounts, it only picks the symbol/format for the viewer's locale.
+LOCALE_CURRENCIES = {
+    "en": "USD",
+    "es": "USD",
+    "hi": "INR",
+    "mr": "INR",
+}
+
+
+def currency_for_locale(lang: str | None) -> str:
+    """Display currency for a chat locale. Unknown/empty → USD."""
+    return LOCALE_CURRENCIES.get((lang or "").lower(), "USD")
+
 
 def format_money(cents: int, currency: str = "USD") -> str:
     symbol = CURRENCY_SYMBOLS.get((currency or "USD").upper(), "")
@@ -55,20 +73,25 @@ def build_quote(
     }
 
 
-def quote_lines_text(quote: dict) -> list[str]:
-    """Human-readable lines for the price strip / chat receipt."""
+def quote_lines_text(quote: dict, lang: str = "en") -> list[str]:
+    """Human-readable lines for the price strip / chat receipt.
+
+    Amounts render in the viewer's locale currency (₹ for mr/hi,
+    $ for en/es) via currency_for_locale — see the note above.
+    """
+    currency = currency_for_locale(lang)
     out = []
     for it in quote["line_items"]:
         out.append(
             f"{it['name']} × {it['qty']} — "
-            f"{format_money(it['line_total_cents'], quote['currency'])}"
+            f"{format_money(it['line_total_cents'], currency)}"
         )
     if quote["delivery_cents"]:
         out.append(
             "Delivery — "
-            f"{format_money(quote['delivery_cents'], quote['currency'])}"
+            f"{format_money(quote['delivery_cents'], currency)}"
         )
     out.append(
-        f"Total — {format_money(quote['total_cents'], quote['currency'])}"
+        f"Total — {format_money(quote['total_cents'], currency)}"
     )
     return out

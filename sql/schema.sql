@@ -52,11 +52,15 @@ CREATE TABLE IF NOT EXISTS prospects (
   id                BIGSERIAL PRIMARY KEY,
   phone_number      TEXT NOT NULL UNIQUE,
   designer_id       BIGINT REFERENCES designers (id),
+  nickname          TEXT NOT NULL DEFAULT '',  -- customer-facing display name
   opt_status        opt_status NOT NULL DEFAULT 'pending',
   preferred_language TEXT NOT NULL DEFAULT 'en',
   last_active_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Migration for databases created before the nickname column existed.
+ALTER TABLE IF EXISTS prospects
+  ADD COLUMN IF NOT EXISTS nickname TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_prospects_designer
   ON prospects (designer_id);
 
