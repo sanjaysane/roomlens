@@ -40,7 +40,8 @@ lights on, hold the phone steady, stand in a doorway to capture the whole wall.
 The designer sets a price per product (stored in cents). When a visualization
 is sent, a quote is built from the placed products plus a delivery charge. The
 prospect sees line items and a total, then confirms with `1` to place the
-order.
+order. Amounts are displayed in the viewer's language currency: ₹ for Marathi
+and Hindi, $ for English and Spanish.
 
 ## 7. How does ordering work for the prospect?
 

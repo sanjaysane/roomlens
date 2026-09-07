@@ -7,8 +7,9 @@ Here's exactly what happens — no app, no account, no typing required.
 ## Scene 1 — Say hello, pick your studio
 
 Message the number. Reply `2` ("preview furniture"). You'll see a numbered
-list of studios — reply with the number of the one you want. Then it asks for
-a photo of your room.
+list of studios — reply with the number of the one you want. It then asks
+for your name (so the designer sees your name instead of your phone number;
+reply `0` to skip), and then for a photo of your room.
 
 ## Scene 2 — Take a good room photo
 
@@ -54,4 +55,7 @@ afterward to check its status: received → preparing → shipped → delivered.
 ## Language
 
 Send `language` (or `idioma` / `भाषा`) anytime to switch between English,
-Spanish, and Hindi. You'll pick up right where you left off.
+Spanish, Hindi, and Marathi. You'll pick up right where you left off.
+
+Prices are shown in the currency of your language: ₹ for Marathi and Hindi,
+$ for English and Spanish.
