@@ -126,7 +126,7 @@ dev boot with zero credentials.
 
 ## i18n approach
 
-Locales live in `locales/{en,es,hi}.json` — **85 keys each, parity-tested**
+Locales live in `locales/{en,es,hi}.json` — **87 keys each, parity-tested**
 (`tests/test_locales.py` fails if any key is missing or extra in any language).
 Resolution order per message: prospect row language → session language →
 user `preferred_language` → `DEFAULT_LANGUAGE` (`en`). The language command
