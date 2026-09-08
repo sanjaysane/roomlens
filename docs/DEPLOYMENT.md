@@ -77,6 +77,13 @@ all objects `IF NOT EXISTS`).
 
 - [ ] `WEBHOOK_VERIFY_TOKEN` is a long random secret, unique per environment.
 - [ ] Tokens/keys are in the environment (or a secret manager), never in the image or repo.
+- [ ] **Secret rotation + custody (v3 F-11).** Rotate `WEBHOOK_VERIFY_TOKEN`,
+      the Meta App Secret, and the WhatsApp token on a fixed cadence (every
+      90 days, or immediately on any team change or suspected leak). One
+      named human holds Meta **app admin**; the pilot runs on a **separate
+      Meta app** from production, so pilot experiments (template drafts,
+      webhook URL changes) can never touch the production number's
+      configuration or billing.
 - [ ] Run multiple uvicorn workers (`--workers N`); the runtime is stateless.
 - [ ] Use a pooled DB connection (PgBouncer or psycopg pool) — per-request
       connections dominate webhook latency today (SCALE.md).

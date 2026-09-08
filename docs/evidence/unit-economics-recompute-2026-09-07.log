@@ -1,0 +1,18 @@
+# Unit-economics recompute — v3 review F-25/F-28
+Date: 2026-09-07. Method: recomputed from business-plan.md §6's own
+assumption inputs. Envelope = adversarial corners:
+  min = min gross − max costs · max = max gross − min costs
+
+Lead-fee contribution India: ₹45 to ₹515
+  inputs: gross (300, 600), conversation (35, 105), chasing (50, 150)
+  plan printed: ≈ ₹150–400
+Lead-fee contribution US: $-4 to $51.5
+  inputs: gross (25, 60), conversation (3.5, 14), chasing (5, 15)
+  plan printed: ≈ $10–40
+
+Take-rate contribution India: ₹-15,000 to ₹73,000
+  gross 10,000–75,000; escrow 1,000–15,000; reserve 1,000–10,000
+  plan printed: ≈ ₹6,000–60,000
+Take-rate contribution US: $-750 to $3,650
+  gross 500–3,750; escrow 50–750; reserve 50–500
+  plan printed: ≈ $300–3,000

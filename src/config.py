@@ -26,6 +26,11 @@ class Settings:
     supabase_bucket: str = _get("SUPABASE_BUCKET", "roomlens")
     default_language: str = _get("DEFAULT_LANGUAGE", "en")
     locales_dir: str = os.path.join(os.path.dirname(__file__), "..", "locales")
+    # Ken Burns video clips of renders (composite.make_clip). Off by default;
+    # when enabled, startup fails loudly if ffmpeg is absent (v3 F-09) rather
+    # than silently degrading every clip to a still photo.
+    enable_video_clips: bool = _get("ENABLE_VIDEO_CLIPS", "").lower() in (
+        "1", "true", "yes")
 
 
 settings = Settings()

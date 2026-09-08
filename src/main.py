@@ -14,11 +14,13 @@ the database (chat_sessions) and persists before returning.
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import PlainTextResponse
 
+from .composite import ffmpeg_available
 from .config import settings
 from .db import FakeDatabase, PostgresDatabase, normalize_phone
 from .i18n import I18n
@@ -67,6 +69,16 @@ def build_runtime():
     else:
         wa = FakeWhatsAppClient()
         media = FakeWhatsAppMedia()
+        # v3 review F-02: the load test's image traffic must exercise the
+        # real download → quality-gate path, not the download-failure path.
+        # When set, this env var (a local image path) is registered as the
+        # "loadtest-media" fixture in the fake backend only — production
+        # (GraphWhatsAppMedia) is untouched.
+        seed_path = os.environ.get("ROOMLENS_SEED_LOADTEST_MEDIA")
+        if seed_path:
+            with open(seed_path, "rb") as fh:
+                media.register("loadtest-media", fh.read())
+            print(f"[roomlens] seeded loadtest-media from {seed_path}")
     if settings.media_backend == "supabase":
         store = SupabaseMediaStore(
             settings.supabase_url,
@@ -75,6 +87,14 @@ def build_runtime():
         )
     else:
         store = LocalMediaStore(settings.media_dir)
+    # v3 F-09: fail loudly at startup if video clips are enabled but ffmpeg
+    # is absent — silently degrading every clip to a still photo with no
+    # alert is exactly the failure TROUBLESHOOTING.md documents.
+    if settings.enable_video_clips and not ffmpeg_available():
+        raise RuntimeError(
+            "ENABLE_VIDEO_CLIPS is set but ffmpeg is not on PATH; "
+            "install ffmpeg or unset ENABLE_VIDEO_CLIPS."
+        )
     return db, wa, i18n, media, store
 
 

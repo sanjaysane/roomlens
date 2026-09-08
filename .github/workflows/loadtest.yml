@@ -43,6 +43,9 @@ jobs:
       - name: Start app
         env:
           DATABASE_URL: postgresql://roomlens:roomlens@localhost:5432/roomlens
+          # v3 F-02: seed the load-test image fixture so image traffic
+          # exercises the real download → quality-gate path.
+          ROOMLENS_SEED_LOADTEST_MEDIA: docs/evidence/room-asha-original.jpg
         run: |
           nohup uvicorn src.main:app --host 127.0.0.1 --port 8000 \
             > /tmp/uvicorn.log 2>&1 &
@@ -56,6 +59,17 @@ jobs:
             -t "${{ inputs.run_time }}" \
             --host http://127.0.0.1:8000 \
             --csv /tmp/locust --html /tmp/locust.html
+      - name: Check for silent handler errors
+        # v3 F-04: "0 failures" in Locust is HTTP-status only. A handler
+        # exception returns 200 with NO user reply (Meta will not retry),
+        # so grep the server log for the silent-drop signature and fail loud.
+        run: |
+          if grep -q "\[roomlens\] handler error" /tmp/uvicorn.log; then
+            echo "::error::handler errors found during load run (silent drops)"
+            grep "\[roomlens\] handler error" /tmp/uvicorn.log
+            exit 1
+          fi
+          echo "no handler errors in server log"
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:

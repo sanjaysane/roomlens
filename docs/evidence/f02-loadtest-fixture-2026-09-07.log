@@ -1,0 +1,30 @@
+# F-02 evidence — load-test image path now exercises download + quality gate
+Date: 2026-09-07. Method: drove the real engine (no mocks beyond the
+documented fake adapters).
+
+## Mechanism (implemented)
+- `src/main.py::build_runtime()` — when the fake media backend is in use and
+  `ROOMLENS_SEED_LOADTEST_MEDIA` points at a file, the fixture bytes are
+  registered as `loadtest-media` at startup. Production `GraphWhatsAppMedia`
+  is untouched.
+- `.github/workflows/loadtest.yml` — "Start app" step sets
+  `ROOMLENS_SEED_LOADTEST_MEDIA=docs/evidence/room-asha-original.jpg`.
+
+## Direct verification (this run)
+1. `build_runtime()` with the env var set:
+   - log line: `[roomlens] seeded loadtest-media from docs/evidence/room-asha-original.jpg`
+   - `media.download("loadtest-media")` returned 1,442,628 bytes
+   - `assess_quality(fixture)` → ok=True, brightness 127.5, blur 48908.5,
+     800×600 — the real quality gate ran on the real fixture.
+2. Full webhook drive (TestClient, seeded server): prospect walked to P_PHOTO
+   ("hi" → "2" → designer pick → name), then POSTed the Meta image payload
+   with `media_id: "loadtest-media"` → HTTP 200, session state P_WAITING,
+   outbound was the waiting confirmation — no retake ask.
+3. Regression test added: `tests/test_flows.py::test_loadtest_media_seed_exercises_quality_gate`
+   — registers the real fixture, sends it as the prospect photo, asserts no
+   retake path and P_WAITING state. Passes.
+
+## Honest boundary (unchanged)
+The seeded path exercises download + quality gate only. The composite/render
+path (Pillow + ffmpeg, designer studio) is still unmeasured under load —
+that is a v1.2 growth gate (F-08), disclosed in SCALE.md "Honest limits".

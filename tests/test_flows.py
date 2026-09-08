@@ -343,3 +343,22 @@ def test_undecodable_video_asks_for_photo(chat):
     chat.send(PROSPECT, None, msg_type="video", media_id="vidbad")
     assert any("still photo" in t for t in chat.texts(PROSPECT))
     assert chat.db.list_pending_media(_designer_id(chat)) == []
+
+
+# ── v3 review F-02: load-test image path must exercise download + quality gate
+def test_loadtest_media_seed_exercises_quality_gate(chat):
+    """The seeded load-test fixture must run the real download +
+    quality-gate path, not the download-failure/retake path (SCALE.md)."""
+    from pathlib import Path
+
+    fixture = Path("docs/evidence/room-asha-original.jpg").read_bytes()
+    onboard_designer(chat)
+    chat.media.register("loadtest-media", fixture)
+    chat.send(PROSPECT, "hi")
+    chat.send(PROSPECT, "2")
+    chat.send(PROSPECT, "1")  # first designer
+    chat.send(PROSPECT, None, msg_type="image", media_id="loadtest-media")
+    texts = chat.texts(PROSPECT)
+    assert not any("retake" in t.lower() or "धूसर" in t for t in texts), texts
+    from src import models as M
+    assert chat.db.get_session(PROSPECT)["state"] == M.P_WAITING

@@ -69,7 +69,7 @@ and restart. Photo flow is unaffected.
 
 **Symptom:** `KeyError` on a message key, or a user sees a raw key name.
 
-**Fix:** add the key to **all three** locale files (`en`, `es`, `hi` — 85 keys
+**Fix:** add the key to **all three** locale files (`en`, `es`, `hi` — 87 keys
 each). `pytest tests/test_locales.py` catches parity breaks; run it before
 pushing. See CONTRIBUTING.md.
 
@@ -86,3 +86,30 @@ The health check hits `http://127.0.0.1:8000/health`. Causes:
 3. Under heavy load a single worker can take ~1.5 s to answer `/health`
    (queueing, not failure — see SCALE.md). If your orchestrator kills on slow
    checks, run more workers or lengthen the timeout.
+
+## Backup / restore drill (v3 F-07)
+
+The DB holds the refs, the media store holds the irreplaceable customer
+originals — a ref without its file (or a file without its ref) is silent
+corruption. Milestones require scheduled backups plus a **rehearsed**
+restore before the first paid pilot (v1.2 growth gates at the latest).
+
+**What to back up:** the PostgreSQL database (`pg_dump`) and the media
+store directory/volume (local `MEDIA_DIR`, or the Supabase bucket in prod).
+
+**Media-ref integrity check** (run after every restore rehearsal):
+
+```bash
+# every media ref in the DB must resolve to a real file, and every file
+# must have a DB ref — orphans in either direction are corruption
+python - <<'PY'
+# pseudocode against the schema in sql/schema.sql:
+#   orphans = files_in_store - refs_in_db; missing = refs_in_db - files_in_store
+#   assert not orphans and not missing, (orphans, missing)
+PY
+```
+
+**Drill:** restore to a scratch environment, run the integrity check, and
+send one end-to-end test visualization through the restored stack. Document
+the date and the result in the pilot log — an unrehearsed backup is a hope,
+not a plan.

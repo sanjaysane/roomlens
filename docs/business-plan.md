@@ -43,7 +43,7 @@ single digit. Measured capabilities (on `main`):
   (`received → preparing → out_for_delivery → delivered`).
 - Opt-in-gated marketing (campaigns, follow-ups, win-backs) via Meta
   pre-approved templates only; `STOP` opts out instantly.
-- Locales: English, Spanish, Hindi full parity (85 keys each, tested);
+- Locales: English, Spanish, Hindi full parity (87 keys each, tested);
   Marathi partial with English fallback.
 
 **Who pays.** The **designer (or design studio)** pays for the platform —
@@ -99,6 +99,35 @@ Milestones state the choice is "take-rate vs qualified-lead fee" and that
 "payment/escrow rail [is] implemented after an explicit decision." The
 plan does not pre-commit.
 
+**The asymmetry the "two models" framing hides (v3 F-26).** These are not
+symmetric pricing choices. The qualified-lead fee **preserves** the money
+boundary the whole package is built on (the platform never touches customer
+funds — no payment licensing, no custody). The take-rate **reverses** it:
+the platform would hold project funds of ₹1,00,000–5,00,000 per deal
+(India), which means licensing (India PA/PG; US money-transmitter),
+KYC, dispute handling, and settlement risk. A monetization decision that
+changes the company's regulatory posture is a **company decision**, not a
+pricing decision. **Counsel sign-off per market is a precondition of
+choosing take-rate** — not a post-decision implementation detail.
+
+**The decision rule (v3 F-27 — assumption, to be validated in the pilot).**
+From measured pilot data, per market:
+
+- If median measured project value ≥ ₹2,00,000 (India) / ≥ $8,000 (US)
+  **and** counsel clears the custody model for that market → take-rate.
+- Otherwise → qualified-lead fee, priced at **≤ 20% of the measured median
+  consultation fee** for that market.
+
+**The decision is made per market (v3 F-31)** — India and the US are never
+blended, and the models may differ between them.
+
+**CAC estimate (v3 F-27 — assumption).** The GTM assumes each designer brings
+their own prospect list, so marginal CAC per prospect ≈ ₹0. The real
+acquisition cost is **designer onboarding labor**: studio profile, catalog
+cutouts, portfolio — estimated 4–8 hours per designer. A v1.2 gate testing
+"revenue covers CAC" is untestable against an unestimated CAC, so the pilot
+must log actual onboarding hours per designer and re-price this proxy.
+
 ---
 
 ## 3. Revenue streams and pricing logic
@@ -133,9 +162,12 @@ plan does not pre-commit.
   guidelines; US: money-transmitter considerations — **inference**, needs
   counsel, not a legal conclusion). It is the heaviest operational lift
   and is explicitly **out of scope for MVP** (milestones: "in-app
-  payment/escrow" out of scope). Also: 10–15% of a full interior project
-  is a large bite — designers will only accept it if RoomLens-sourced
-  projects are incremental business they wouldn't have won otherwise.
+  payment/escrow" out of scope). **Counsel sign-off per market is a
+  precondition of choosing this model** (v3 F-26) — the decision gate, not
+  the build plan, is where the money boundary gets crossed. Also: 10–15% of
+  a full interior project is a large bite — designers will only accept it if
+  RoomLens-sourced projects are incremental business they wouldn't have won
+  otherwise.
 
 ### Stream 3 — Designer subscription / SaaS seat (possible v1.2 adjunct)
 
@@ -268,7 +300,13 @@ replace them with designer-reported numbers.
 | Prospects needed per converted lead (at 15% contact→consult) | ~7 | ~7 |
 | Conversation cost per converted lead | ₹35–105 | $3.50–14 |
 | Attribution/chasing labor per lead | ₹50–150 | $5–15 |
-| **Contribution per converted lead** | **≈ ₹150–400** | **≈ $10–40** |
+| **Contribution per converted lead** | **≈ ₹45–515** | **≈ −$4 to +$52** |
+
+> **Recomputed 2026-09-07 (v3 F-25)** from the table's own inputs — adversarial
+> corners (min = min gross − max costs, max = max gross − min costs); see
+> `docs/evidence/unit-economics-recompute-2026-09-07.log`. The US low-end
+> case is **negative per converted lead**: at the bottom of the assumption
+> envelope the lead-fee model loses money on every converted lead.
 
 **Worked example — project take-rate model (assumptions):**
 
@@ -279,7 +317,14 @@ replace them with designer-reported numbers.
 | Gross revenue per project | ₹10,000–75,000 | $500–3,750 |
 | Escrow/payment processing | 1–3% of project value | 1–3% of project value |
 | Dispute/support reserve | 1–2% of project value | 1–2% of project value |
-| **Contribution per project** | **≈ ₹6,000–60,000** | **≈ $300–3,000** |
+| **Contribution per project** | **≈ −₹15,000 to ₹73,000** | **≈ −$750 to $3,650** |
+
+> **Recomputed 2026-09-07 (v3 F-28)** from the table's own inputs — adversarial
+> corners; see `docs/evidence/unit-economics-recompute-2026-09-07.log`. The
+> printed range previously hid the negative tail: at the low corner (small
+> project × low take-rate × high escrow + reserve) a project **loses**
+> ₹15,000 (India) / $750 (US). The prose warning stands — one mishandled
+> ₹5,00,000 escrow dispute wipes out the margin of many good deals.
 
 **Reading the table honestly:**
 
@@ -299,6 +344,12 @@ replace them with designer-reported numbers.
   variable cost to nail down from the rate card — a chatty preview loop
   (photo → retake → preview → change placement → change product) can span
   multiple 24-hour windows.
+- **Sensitivity: funnels spanning 2+ conversation windows (v3 F-08).** Every
+  additional 24h window roughly doubles the per-funnel Meta cost. Two windows
+  → conversation cost per converted lead ≈ ₹70–210 (India) / $7–28 (US).
+  At the India low corner (₹45 contribution) a two-window funnel is already
+  underwater; at the US low corner it deepens the −$4 loss. Per-funnel
+  window count is therefore a pilot metric, not a footnote.
 
 ---
 
@@ -343,8 +394,10 @@ contradicting it; elaborating the business-model implications).
 6. **Media liability.** Room photos are personal spaces; renders are
    stored files. Retention, deletion-on-request, and consent need a
    written policy before scale (the how-to doc covers mechanics, not
-   policy). **What must be true:** a retention/deletion policy exists by
-   v1.2.
+   policy). **What must be true (v3 F-06):** the written retention/deletion
+   policy — with a named owner and a dated deadline — exists and the deletion
+   path is implemented and tested **before the first paid pilot**, not "by
+   v1.2". The pilot is when real photos of real homes first arrive.
 
 ### What-must-be-true (business-model edition)
 
@@ -360,6 +413,11 @@ contradicting it; elaborating the business-model implications).
 
 ## 8. MVP success criteria (tied to milestones.md)
 
+**Label: demand validation, not revenue (v3 F-30).** The MVP proves that
+previews convert curiosity into contact and contact into paid work. It does
+not prove a business model — the platform captures none of the money, sets
+no prices, and probes no willingness-to-pay yet.
+
 The milestones "Done criteria" are the MVP scoreboard; the business-plan
 readout maps each to a business question:
 
@@ -368,8 +426,16 @@ readout maps each to a business question:
 | 20+ real-room visualizations completed | the pipeline works on real photos, not fixtures |
 | Visualization completion ≥ 70% (photo → preview) | the quality gate + render loop doesn't leak prospects |
 | Prospect → designer contact ≥ 15% (**assumption**) | previews create purchase intent |
-| ≥ 1 paid consultation attributed to a RoomLens lead | someone paid real money because of the product |
+| ≥ 3 paid consultations attributed **per pilot designer** (designer-reported, cross-checked against receipts) | the funnel produces repeatable paid work, not one anecdote |
+| Directional WTP probe: what would each pilot designer pay per converted consult? | v1.2 pricing starts from a stated number, not a blank |
 | Honest "not AR" framing in every chat | trust is protected even when the render is imperfect |
+
+> **On the consultation-fee inputs (v3 F-30):** the ₹2,000–5,000 / $150–400
+> consultation-fee assumptions in §6 are the least reliable pilot input —
+> designers understate income to a platform that might charge a percentage
+> of it (the same incentive as the attribution leak in risk 2). The pilot
+> must cross-check designer-stated fees against attributed-consultation
+> receipts, not take statements at face value.
 
 **Business-plan gate to v1.2:** in addition to the above, the pilot must
 produce the measured inputs for §6 — actual contact→consultation→project
@@ -378,3 +444,42 @@ actual consultation fees and project values per market (designer-reported),
 and 90-day designer retention. The monetization decision (qualified-lead
 fee vs project take-rate via escrow) is made from those numbers. No
 pricing is final until the funnel is measured.
+
+---
+
+## 9. Honest moat / defensibility (v3 F-29)
+
+**There is no technology moat.** The product is Pillow/NumPy compositing at
+preset anchors behind a WhatsApp state machine — cloneable in weeks by any
+competent team. Any moat claim stronger than that would be fiction, and the
+board should not underwrite one.
+
+**The structural leak: disintermediation.** Designer and prospect meet *on
+WhatsApp* and can transact there forever, off-platform, with zero switching
+cost. The lead-fee model taxes a conversion the platform cannot observe in
+MVP: attribution is manual designer self-reporting, and the designer has a
+direct financial incentive to under-report.
+
+**Quantifying the leak's tolerance (assumptions, from §6's India inputs):**
+at the low-end corner, contribution per converted lead is ₹45 — so
+**15% under-reporting wipes out the contribution entirely**
+(₹300 × 0.15 = ₹45). At the mid-case (≈ ₹450 gross, ≈ ₹170 costs),
+tolerance is ≈ 62%; at the high corner, ≈ 86%. In other words: the lead-fee model survives only with
+the platform-observed conversion event (v1.2a scope) *and* spot-audit
+discipline (milestones v1.2 gate, F-10). Without both, the leak is not a
+risk — it is the P&L.
+
+**What could actually compound:** execution and distribution. Designer
+relationships and real catalogs (the compositing quality bar on real photos
+is work, not code); opted-in prospect bases behind `STOP`-gated templates;
+the honest "not AR" framing as a trust brand; speed of the pilot-to-v1.2a
+loop. None of these is a moat in the textbook sense — together they are a
+head start that must be converted into the observed conversion event before
+a clone catches up.
+
+**The take-rate connection.** The take-rate/escrow model is the
+anti-disintermediation answer: when the platform holds the project funds, the
+conversion is observed by construction. But it buys that at the cost of the
+money boundary (F-26 §2) — licensing, KYC, dispute handling, settlement
+risk. They are the same decision: *how much of the transaction do we need to
+see, and what are we willing to become in order to see it?*

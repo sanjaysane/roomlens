@@ -18,7 +18,7 @@ runtime** with **swappable adapters** (real for prod, fakes for tests/dev).
 | `src/whatsapp.py` | `WhatsAppClient` seam: text, image, and pre-approved **template** sends |
 | `src/db.py` | `Database` seam: `PostgresDatabase` (psycopg3) / `FakeDatabase` (in-memory) |
 | `src/marketing.py` | Opt-in-gated campaign / follow-up / win-back fan-out; `STOP` suppression |
-| `src/i18n.py` | Locale loading + resolution (`en`/`es`/`hi`, 85 keys each) |
+| `src/i18n.py` | Locale loading + resolution (`en`/`es`/`hi`, 87 keys each; `mr` partial) |
 | `src/pricing.py` | Money formatting, quote line-item text |
 | `src/context.py` | `Ctx` (reply/send helpers, session persistence), `parse_choice` |
 | `src/models.py` | Roles, states, placement presets, language options — the shared contract |
@@ -45,6 +45,14 @@ from `chat_sessions` and persists before returning. Errors in a single message
 are caught, logged (`[roomlens] handler error for …`), and the webhook still
 returns 200 — Meta retries aggressively on non-2xx, so failing loudly would
 replay the same message.
+
+> **Silent-drop consequence (v3 F-04):** because the webhook returns 200 on
+> handler error, Meta will **not** retry — so the user receives **no reply
+> at all** to that message, with no fallback reply and no dead-letter count.
+> The only signal is the `[roomlens] handler error` log line. The pilot ops
+> floor (milestones) requires alerting on this signature, and the load-test
+> workflow greps the server log for it — Locust's "0 failures" is
+> HTTP-status only.
 
 ## State machine
 
@@ -151,3 +159,33 @@ Business-initiated messages (campaigns, follow-ups, win-backs) go through
 pre-approved template name** (default `roomlens_update`). Anyone else is
 silently skipped — suppression is a tested feature. See DEPLOYMENT.md for the
 template-approval requirement.
+
+## Deliberate simplifications / honest limits (v3 F-03)
+
+Things the architecture intentionally does **not** do yet. Each is a
+conscious MVP-scope choice, not an oversight — but the board and the pilot
+team should see them in one place rather than discovering them in an
+incident.
+
+1. **Campaign sends are an unthrottled loop.** `src/marketing.py::send_marketing`
+   (lines 43–52) loops over prospects calling `wa.send_template(...)` per
+   recipient: no per-second rate control, no delivery-receipt tracking, no
+   retry/backoff on Meta rate-limit errors. The "single choke point" framing
+   in "Outbound templates" above means every campaign send is *visible* in
+   one place — it does **not** mean sends are rate-safe. At pilot scale
+   (tens of recipients) this is fine; before any campaign to hundreds of
+   prospects, add per-second throttling and rate-limit backoff.
+2. **Webhook signature validation is not implemented.** `POST /webhook` does
+   not validate `X-Hub-Signature-256` (see SECURITY.md and DEPLOYMENT.md's
+   production checklist). This is milestones Known gap #4 and a condition on
+   board approval of the MVP: it must land before the first real prospect
+   sends a real room photo. Without it, a forged payload can trigger renders
+   (compute cost), fire outbound WhatsApp sends (Meta conversation charges),
+   and spam `STOP` against a designer's opted-in base.
+3. **Media retention is mechanics, not policy.** `docs/how-to/media-retention.md`
+   documents how deletion works; the written retention/deletion policy (with a
+   named owner and a dated deadline — "before first paid pilot") is a
+   milestones "what must be true" item (v3 F-06), not a shipped artifact.
+4. **Render throughput under concurrent load is unmeasured.** See SCALE.md
+   "Honest limits" — the concurrent-render load test is a v1.2 growth gate
+   (v3 F-08), not a measured number.

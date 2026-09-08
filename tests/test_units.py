@@ -104,3 +104,22 @@ def test_order_placed_carries_payment_line():
     for lang, marker in (("en", "never takes your money"),
                          ("mr", "अ‍ॅप मध्ये पैसे घेत नाही")):
         assert marker in i18n.t(lang, "p_order_placed", order_id=1)
+
+
+def test_video_self_check_fails_loud_without_ffmpeg(monkeypatch):
+    # F-09: video enabled + ffmpeg absent must fail at startup, never
+    # silently degrade every clip to a still photo.
+    import dataclasses
+
+    import pytest
+
+    from src import main
+
+    monkeypatch.setattr(
+        main, "settings",
+        dataclasses.replace(main.settings, enable_video_clips=True,
+                            database_url=""),
+    )
+    monkeypatch.setattr(main, "ffmpeg_available", lambda: False)
+    with pytest.raises(RuntimeError, match="ffmpeg"):
+        main.build_runtime()

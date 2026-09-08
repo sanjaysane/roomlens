@@ -11,6 +11,11 @@
   70% text messages (welcome → role pick → single-digit replies, incl. `STOP`),
   20% image messages (room-photo path), 10% `GET /health` probes.
 - **Profile**: 50 concurrent users, 10 users/s ramp, **2 minutes**.
+- **Media fixture (v3 fix F-02):** the server seeds a real fixture image as
+  `loadtest-media` when `ROOMLENS_SEED_LOADTEST_MEDIA` points at a file
+  (`src/main.py`, fake-media backend only), so the 20% image share runs the
+  real download → quality-gate path. Before this fix the registry was empty
+  and image traffic exercised only the download-failure → retake path.
 
 ## Measured results (50 users, 2 min, single worker)
 
@@ -23,6 +28,11 @@
 - Each webhook request does a full stateless round trip: parse the nested Meta
   payload, hydrate the chat session from PostgreSQL, dispatch the state machine,
   and persist the reply — no caching, no session affinity.
+- ⚠️ **What the 2026-09-05 run actually measured:** text traffic plus image
+  traffic that hit the *download-failure → retake* path (the fake-media
+  registry was unseeded then — v3 review F-02). So the ~35 req/s figure is a
+  real measurement of the webhook/state-machine path, but it says nothing
+  about compositing or rendering throughput.
 
 ## What the numbers mean
 
@@ -56,6 +66,12 @@ profile in CI against the compose stack and uploads the HTML report.
 
 - Not tested: 200+ concurrent users, multi-worker uvicorn, pooled DB,
   Gunicorn, or production Meta webhook volume. Don't quote those.
-- The composite/render path (Pillow + ffmpeg) was not the bottleneck here;
-  it will be if many visualizations render concurrently — pre-warm or queue
-  renders if a studio batch-imports.
+- The composite/render path (Pillow + ffmpeg, designer studio) was **not
+  exercised by this load test** — image traffic stops at the prospect
+  quality gate; renders are triggered designer-side. Concurrent-render
+  characterization (p95 render latency, zero webhook handler errors under
+  simultaneous visualizations) is a v1.2 growth gate in milestones, not a
+  measured number. Don't quote render throughput.
+- The seeding mechanism (`ROOMLENS_SEED_LOADTEST_MEDIA`) is wired into the
+  manual CI workflow, so the *next* scheduled load run measures the real
+  download + quality-gate path; its numbers go here when they exist.
