@@ -16,9 +16,31 @@
 `mediadata` volume). `supabase` writes to private objects in a Supabase
 Storage bucket. The database never holds image bytes — only refs.
 
+## Retention enforcement (implemented)
+
+Retention is enforced by the purge job in `src/retention.py`
+(`python -m src.retention`), scheduled to run periodically (cron/systemd;
+see the module docstring). The job:
+
+- queries `room_media` for rows older than the retention window
+  (default `--retention-days 90`) whose prospect has **no visualization
+  and no order** (the "abandoned prospect" rule) —
+  `Database.list_expired_room_media` / `delete_room_media`
+  (both Fake and Postgres implementations);
+- deletes the bytes via `MediaStore.delete` (tolerates already-gone
+  files/objects; DB record is still cleared) and deletes the
+  `room_media` row;
+- never touches media in an active pipeline (open visualization) or with
+  a closed order;
+- supports `--dry-run`, which reports what *would* be deleted without
+  deleting anything.
+
+Owner: platform operator (pilot on-call) — per `docs/milestones.md`.
+
 ## Retention guidelines
 
-RoomLens ships no automatic deletion. Suggested policy for a studio:
+RoomLens now ships automatic deletion via the purge job above.
+Policy for a studio:
 
 - **Active pipeline** (room has an open visualization, quote, or order):
   keep everything.
@@ -28,9 +50,9 @@ RoomLens ships no automatic deletion. Suggested policy for a studio:
   delete room media.
 - **STOP / deletion requests:** honor immediately (see below).
 
-Implement deletion as a periodic job against `room_media` /
-`visualizations` + the media store's `load`/`save` refs — delete the file
-(or object) and null the ref.
+The purge job (`src/retention.py`) implements exactly this: it deletes the
+file (or object) via `MediaStore.delete` and removes the `room_media` row.
+Verify with a `--dry-run` before the first live run.
 
 ## Deletion requests
 

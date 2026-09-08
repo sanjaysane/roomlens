@@ -156,6 +156,11 @@ class MediaStore(abc.ABC):
     def load(self, ref: str) -> bytes:
         ...
 
+    @abc.abstractmethod
+    def delete(self, ref: str) -> None:
+        """Delete previously stored bytes. Tolerates already-gone refs."""
+        ...
+
 
 def _safe_filename(filename: str) -> str:
     base = os.path.basename(filename).replace("..", "")
@@ -182,6 +187,11 @@ class LocalMediaStore(MediaStore):
         if not ref.startswith("local:"):
             raise ValueError(f"Not a local media ref: {ref}")
         return (self._root / ref[len("local:"):]).read_bytes()
+
+    def delete(self, ref: str) -> None:
+        if not ref.startswith("local:"):
+            raise ValueError(f"Not a local media ref: {ref}")
+        (self._root / ref[len("local:"):]).unlink(missing_ok=True)
 
 
 class SupabaseMediaStore(MediaStore):
@@ -253,6 +263,27 @@ class SupabaseMediaStore(MediaStore):
                     f"Supabase download failed {resp.status_code}: {resp.text[:200]}"
                 )
             return resp.content
+        finally:
+            if close and hasattr(client, "close"):
+                client.close()
+
+    def delete(self, ref: str) -> None:
+        if not ref.startswith("supabase:"):
+            raise ValueError(f"Not a Supabase media ref: {ref}")
+        path = ref[len("supabase:"):]
+        client = self._client()
+        close = self._http is None
+        try:
+            resp = client.delete(
+                f"{self._base}/storage/v1/object/{self._bucket}/{path}",
+                headers=self._headers(),
+            )
+            # 404 means the object is already gone — still fine.
+            if resp.status_code >= 400 and resp.status_code != 404:
+                raise RuntimeError(
+                    f"Supabase delete failed {resp.status_code}: "
+                    f"{resp.text[:200]}"
+                )
         finally:
             if close and hasattr(client, "close"):
                 client.close()

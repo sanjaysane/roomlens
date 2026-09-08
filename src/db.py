@@ -118,6 +118,12 @@ class Database(abc.ABC):
     def list_pending_media(self, designer_id: int) -> list[dict]: ...
     @abc.abstractmethod
     def mark_media_visualized(self, media_id: int) -> None: ...
+    @abc.abstractmethod
+    def list_expired_room_media(self, cutoff) -> list[dict]:
+        """Room media older than *cutoff* with no visualization and no
+        order for the prospect — the 'abandoned prospect' retention rule."""
+    @abc.abstractmethod
+    def delete_room_media(self, media_id: int) -> None: ...
 
     # ── visualizations ─────────────────────────────────────────
     @abc.abstractmethod
@@ -452,6 +458,33 @@ class FakeDatabase(Database):
         m = self.room_media.get(int(media_id))
         if m is not None:
             m["has_visualization"] = True
+
+    def list_expired_room_media(self, cutoff) -> list[dict]:
+        prospects_with_viz = {
+            v["prospect_id"] for v in self.visualizations.values()
+        }
+        prospects_with_orders = {
+            pid
+            for pid, p in self.prospects.items()
+            if any(
+                o["prospect_phone"] == p["phone_number"]
+                for o in self.orders.values()
+            )
+        }
+        return sorted(
+            (
+                dict(m)
+                for m in self.room_media.values()
+                if m["created_at"] < cutoff
+                and not m["has_visualization"]
+                and m["prospect_id"] not in prospects_with_viz
+                and m["prospect_id"] not in prospects_with_orders
+            ),
+            key=lambda m: m["id"],
+        )
+
+    def delete_room_media(self, media_id: int) -> None:
+        self.room_media.pop(int(media_id), None)
 
     # ── visualizations ──
     def create_visualization(
@@ -962,6 +995,30 @@ class PostgresDatabase(Database):
             cur.execute(
                 "UPDATE room_media SET has_visualization = TRUE WHERE id = %s",
                 (int(media_id),),
+            )
+
+    def list_expired_room_media(self, cutoff) -> list[dict]:
+        with self._conn() as c, c.cursor() as cur:
+            cur.execute(
+                """SELECT rm.* FROM room_media rm
+                   JOIN prospects p ON p.id = rm.prospect_id
+                   WHERE rm.created_at < %s
+                     AND rm.has_visualization = FALSE
+                     AND NOT EXISTS (
+                       SELECT 1 FROM visualizations v
+                       WHERE v.prospect_id = rm.prospect_id)
+                     AND NOT EXISTS (
+                       SELECT 1 FROM orders o
+                       WHERE o.prospect_phone = p.phone_number)
+                   ORDER BY rm.id""",
+                (cutoff,),
+            )
+            return [dict(r) for r in cur.fetchall()]
+
+    def delete_room_media(self, media_id: int) -> None:
+        with self._conn() as c, c.cursor() as cur:
+            cur.execute(
+                "DELETE FROM room_media WHERE id = %s", (int(media_id),)
             )
 
     # ── visualizations ──

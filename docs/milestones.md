@@ -79,6 +79,8 @@ least one converts into a paid designer consultation.
   ("before first paid pilot"), and the deletion path implemented and tested —
   not just documented in `docs/how-to/media-retention.md`. Room photos are
   sensitive PII (interiors reveal wealth, occupants, children, location cues).
+  **Owner:** platform operator (pilot on-call) — owns the written policy, the
+  scheduled purge job (`src/retention.py`), and honoring deletion requests.
 - **Backup/restore before the first paid pilot (v3 F-07):** DB + media store
   backed up on a schedule; restore rehearsed and documented in
   TROUBLESHOOTING.md, including a media-ref integrity check.
