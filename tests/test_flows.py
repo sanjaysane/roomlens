@@ -105,11 +105,12 @@ def test_full_happy_path(chat):
     # designer was notified of the new order
     assert any("New order" in t for t in chat.texts(DESIGNER))
 
-    # designer marks it delivered → prospect gets the update
+    # designer marks it delivered → prospect gets the update (F-20: the
+    # prospect-facing status is a localized label, never the raw DB token)
     chat.send(DESIGNER, "3")  # orders
     chat.send(DESIGNER, "1")  # pick first order → status menu
     chat.send(DESIGNER, "3")  # delivered
-    assert any("is now: delivered" in t for t in chat.texts(PROSPECT))
+    assert any("is now: Delivered." in t for t in chat.texts(PROSPECT))
 
 
 def test_prospect_change_placement_notifies_designer(chat):

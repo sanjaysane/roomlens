@@ -73,3 +73,34 @@ def test_parse_name_rejects_junk():
     assert parse_name("<script>") is None
     assert parse_name("x" * 61) is None
     assert parse_name("DROP TABLE;") is None
+
+
+# ── v3 review F-19/F-20: localized receipt labels and order statuses ──
+def test_quote_total_label_localized():
+    q = P.build_quote([{"name": "Chair", "qty": 1, "price_cents": 18900}],
+                      delivery_cents=0, currency="USD")
+    assert any("एकूण — ₹189.00" in l for l in P.quote_lines_text(q, lang="mr"))
+    assert any("कुल — ₹189.00" in l for l in P.quote_lines_text(q, lang="hi"))
+    assert any("Total — $189.00" in l for l in P.quote_lines_text(q, lang="en"))
+    # no raw-English "Total —" leaks into the Marathi/Hindi receipt
+    assert not any(l.startswith("Total —") for l in P.quote_lines_text(q, lang="mr"))
+
+
+def test_order_status_label_prospect_facing():
+    # F-20: "received" must not read as the prospect receiving her order
+    assert P.order_status_label("received", "mr") == "ऑर्डर डिझायनरला पोहोचली"
+    assert P.order_status_label("preparing", "mr") == "तयार होत आहे"
+    assert P.order_status_label("out_for_delivery", "hi") == "डिलीवरी के लिए निकला"
+    assert P.order_status_label("delivered", "en") == "Delivered"
+    assert P.order_status_label("delivered", "es") == "Entregado"
+    # unknown status can never break a chat: falls back to readable token
+    assert P.order_status_label("some_new_state", "mr") == "some new state"
+
+
+def test_order_placed_carries_payment_line():
+    # F-22: the prospect is told she pays the designer directly, off-platform
+    from src.i18n import I18n
+    i18n = I18n("locales")
+    for lang, marker in (("en", "never takes your money"),
+                         ("mr", "अ‍ॅप मध्ये पैसे घेत नाही")):
+        assert marker in i18n.t(lang, "p_order_placed", order_id=1)

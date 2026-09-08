@@ -6,7 +6,12 @@ from .. import models as M
 from ..composite import assess_quality, extract_first_frame
 from ..context import Ctx, parse_choice, parse_name
 from ..display import designer_name, prospect_name
-from ..pricing import currency_for_locale, format_money, quote_lines_text
+from ..pricing import (
+    currency_for_locale,
+    format_money,
+    order_status_label,
+    quote_lines_text,
+)
 
 
 def _designer_phone(ctx: Ctx, prospect: dict) -> str | None:
@@ -274,7 +279,7 @@ def handle_tracking(ctx: Ctx) -> None:
         ctx.reply("p_no_open_orders")
         return
     lines = [
-        f"#{o['id']}: {o['status'].replace('_', ' ')} — "
+        f"#{o['id']}: {order_status_label(o['status'], ctx.lang)} — "
         f"{format_money(o['total_cents'], currency_for_locale(ctx.lang))}"
         for o in open_orders
     ]

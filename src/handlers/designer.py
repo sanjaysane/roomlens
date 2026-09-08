@@ -9,7 +9,12 @@ from .. import models as M
 from ..composite import make_placeholder_cutout, render_visualization
 from ..context import Ctx, parse_choice, parse_name, parse_price
 from ..display import display_name
-from ..pricing import build_quote, currency_for_locale, format_money
+from ..pricing import (
+    build_quote,
+    currency_for_locale,
+    format_money,
+    order_status_label,
+)
 
 
 def _designer(ctx: Ctx) -> dict:
@@ -379,7 +384,7 @@ def show_orders(ctx: Ctx) -> None:
     lines = [
         f"{i + 1}. #{o['id']} — "
         f"{format_money(o['total_cents'], currency_for_locale(ctx.lang))} — "
-        f"{o['status'].replace('_', ' ')}"
+        f"{order_status_label(o['status'], ctx.lang)}"
         for i, o in enumerate(orders)
     ]
     ctx.set_state(M.D_ORDERS, orders=[o["id"] for o in orders])
@@ -414,10 +419,11 @@ def handle_order_status(ctx: Ctx) -> None:
     order = ctx.db.update_order(ctx.session["data"]["order_id"], status=status)
     prospect_phone = order["prospect_phone"]
     p = ctx.db.get_prospect(prospect_phone) or {}
+    p_lang = p.get("preferred_language", "en")
     ctx.send_to(
         prospect_phone, "p_tracking_update",
-        p.get("preferred_language", "en"),
-        order_id=order["id"], status=status.replace("_", " "),
+        p_lang,
+        order_id=order["id"], status=order_status_label(status, p_lang),
     )
     ctx.set_state(M.D_ORDERS)
     ctx.reply("d_order_updated")
