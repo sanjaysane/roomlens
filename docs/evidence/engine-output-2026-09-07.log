@@ -1,0 +1,362 @@
+========================================================================
+ROOMLENS ENGINE EVIDENCE — real engine output, 2026-09-07
+All text below came from src/state_machine.process_incoming over
+the fake adapters (same code path as production, sans network).
+========================================================================
+
+###### 1. DESIGNER ONBOARDING (studio name, not phone number) ######
+
+>>> 15550001111 sends "hi"
+<<< to=15550001111 kind=text
+🏠 Welcome! See beautiful furniture in YOUR OWN room before you buy.
+
+Reply:
+1️⃣ I'm a designer
+2️⃣ I want a free room preview
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+🪑 Welcome, designer! What's your studio name? (Type it in one message)
+---
+
+>>> 15550001111 sends "Casa Studio"
+<<< to=15550001111 kind=text
+🪑 Studio home:
+1️⃣ Catalog
+2️⃣ Studio (room photos)
+3️⃣ Orders
+4️⃣ Marketing
+---
+
+### designer record
+{'id': 2, 'phone_number': '15550001111', 'display_name': 'Casa Studio', 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 267641, tzinfo=datetime.timezone.utc)}
+
+###### 2. DESIGNER ADDS CATALOG PRODUCT ######
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+📋 Your catalog:
+(empty — add your first product!)
+
+1️⃣ Add product
+2️⃣ Remove product
+0️⃣ Back
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+What's the product name? (Type it in one message)
+---
+
+>>> 15550001111 sends "Aria Chair"
+<<< to=15550001111 kind=text
+Price for “Aria Chair”? (Reply with a number, e.g. 189.00)
+---
+
+>>> 15550001111 sends "189.00"
+<<< to=15550001111 kind=text
+What size is it?
+1️⃣ Floor item (chair, table)
+2️⃣ Wall item (shelf, art)
+3️⃣ Tabletop (lamp, vase)
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+Send a product photo with a plain background (PNG with transparency works best), or reply 0 to skip for now.
+---
+
+>>> 15550001111 sends "0"
+<<< to=15550001111 kind=text
+✅ Added: Aria Chair — $189.00
+---
+<<< to=15550001111 kind=text
+📋 Your catalog:
+1. Aria Chair — $189.00
+
+1️⃣ Add product
+2️⃣ Remove product
+0️⃣ Back
+---
+
+>>> 15550001111 sends "0"
+<<< to=15550001111 kind=text
+🪑 Studio home:
+1️⃣ Catalog
+2️⃣ Studio (room photos)
+3️⃣ Orders
+4️⃣ Marketing
+---
+
+### product record
+{'id': 3, 'designer_id': 2, 'name': 'Aria Chair', 'description': '', 'price_cents': 18900, 'currency': 'USD', 'width_cm': 0.0, 'height_cm': 0.0, 'depth_cm': 0.0, 'materials': '', 'variants': {}, 'cutout_ref': '', 'size_class': 'floor', 'default_preset': 'floor-center', 'active': True, 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 267947, tzinfo=datetime.timezone.utc)}
+
+###### 3. PROSPECT 'Asha' (en) SENDS ROOM PHOTO ######
+
+>>> 15550002222 sends "hi"
+<<< to=15550002222 kind=text
+🏠 Welcome! See beautiful furniture in YOUR OWN room before you buy.
+
+Reply:
+1️⃣ I'm a designer
+2️⃣ I want a free room preview
+---
+
+>>> 15550002222 sends "2"
+<<< to=15550002222 kind=text
+Choose your designer:
+1. Casa Studio
+---
+
+>>> 15550002222 sends "1"
+<<< to=15550002222 kind=text
+What's your name? We'll show it to the designer instead of your number. (Reply 0 to skip)
+---
+
+>>> 15550002222 sends "Asha"
+<<< to=15550002222 kind=text
+📸 Great! Send ONE clear photo of your room (lights on, hold steady). Casa Studio will place furniture into it for you — free!
+---
+
+>>> 15550002222 sends [IMG room_asha]
+<<< to=15550001111 kind=text
+📸 New room photo from Asha! Open Studio (reply 2) to build their preview.
+---
+<<< to=15550002222 kind=text
+✅ Perfect, thank you! Casa Studio is preparing your preview now. We'll message you as soon as it's ready.
+---
+<<< to=15550002222 kind=text
+Want occasional design tips & offers on WhatsApp?
+1️⃣ Yes please
+2️⃣ No thanks
+---
+
+>>> 15550002222 sends "1"
+<<< to=15550002222 kind=text
+🎉 You're in! We'll send only the good stuff. (Reply STOP anytime to leave.)
+---
+
+### prospect record (Asha)
+{'id': 5, 'phone_number': '15550002222', 'designer_id': 2, 'nickname': 'Asha', 'opt_status': 'opted_in', 'preferred_language': 'en', 'last_active_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 298583, tzinfo=datetime.timezone.utc), 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 268170, tzinfo=datetime.timezone.utc)}
+
+###### 4. MARATHI PROSPECT SENDS ROOM PHOTO ######
+
+>>> 15550003333 sends "hi"
+<<< to=15550003333 kind=text
+🏠 Welcome! See beautiful furniture in YOUR OWN room before you buy.
+
+Reply:
+1️⃣ I'm a designer
+2️⃣ I want a free room preview
+---
+
+>>> 15550003333 sends "2"
+<<< to=15550003333 kind=text
+Choose your designer:
+1. Casa Studio
+---
+
+>>> 15550003333 sends "1"
+<<< to=15550003333 kind=text
+What's your name? We'll show it to the designer instead of your number. (Reply 0 to skip)
+---
+
+>>> 15550003333 sends "language"
+<<< to=15550003333 kind=text
+Choose your language:
+1️⃣ English
+2️⃣ Español
+3️⃣ हिंदी
+4️⃣ मराठी
+---
+
+>>> 15550003333 sends "4"
+<<< to=15550003333 kind=text
+✅ भाषा बदलली.
+---
+<<< to=15550003333 kind=text
+तुमचं नाव काय? डिझायनरला तुमचा नंबर नव्हे, तर नाव दिसेल. (वगळायचं असेल तर 0 लिहा)
+---
+
+>>> 15550003333 sends [IMG room_meera]
+<<< to=15550001111 kind=text
+📸 New room photo from 15550003333! Open Studio (reply 2) to build their preview.
+---
+<<< to=15550003333 kind=text
+✅ परफेक्ट, धन्यवाद! Casa Studio तुमचा प्रीव्यू तयार करत आहे. तयार झाला की लगेच कळवू.
+---
+<<< to=15550003333 kind=text
+WhatsApp वर कधीतरी डिझाइन टिप्स आणि ऑफर हव्या?
+1️⃣ हो, नक्की
+2️⃣ नको, धन्यवाद
+---
+
+>>> 15550003333 sends "1"
+<<< to=15550003333 kind=text
+🎉 झालं! फक्त चांगल्याच गोष्टी पाठवू. (कधीही सोडण्यासाठी STOP लिहा.)
+---
+
+### prospect record (Marathi user)
+{'id': 8, 'phone_number': '15550003333', 'designer_id': 2, 'nickname': '', 'opt_status': 'opted_in', 'preferred_language': 'mr', 'last_active_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 320699, tzinfo=datetime.timezone.utc), 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 298740, tzinfo=datetime.timezone.utc)}
+
+###### 5. DESIGNER OPENS STUDIO — room list (nicknames) ######
+
+>>> 15550001111 sends "2"
+<<< to=15550001111 kind=text
+📸 Rooms waiting for a preview:
+1. 📸 Asha
+2. 📸 15550003333
+
+Reply with the number, or 0 to go back.
+---
+
+### pending media count: 2
+
+###### 6. RENDER VISUALIZATIONS → quote sent in viewer locale ######
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+Choose a product to place:
+1. Aria Chair — $189.00
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+Where should the Aria Chair go?
+1️⃣ Floor center
+2️⃣ Left side
+3️⃣ Right side
+4️⃣ On the wall
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=image
+
+---
+<<< to=15550001111 kind=text
+How does it look?
+1️⃣ Bigger
+2️⃣ Smaller
+3️⃣ Perfect — send to prospect ✨
+4️⃣ Start over
+---
+
+>>> 15550001111 sends "3"
+<<< to=15550002222 kind=image
+✨ Here's the Aria Chair in YOUR room!
+💰 Price: $189.00
+
+Reply:
+1️⃣ I want it! 👍
+2️⃣ Try a different placement
+3️⃣ Show me a different product
+4️⃣ I want to talk to the designer
+---
+<<< to=15550001111 kind=text
+✨ Preview sent to the prospect with pricing!
+---
+<<< to=15550001111 kind=text
+🪑 Studio home:
+1️⃣ Catalog
+2️⃣ Studio (room photos)
+3️⃣ Orders
+4️⃣ Marketing
+---
+
+>>> 15550001111 sends "2"
+<<< to=15550001111 kind=text
+📸 Rooms waiting for a preview:
+1. 📸 15550003333
+
+Reply with the number, or 0 to go back.
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+Choose a product to place:
+1. Aria Chair — $189.00
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=text
+Where should the Aria Chair go?
+1️⃣ Floor center
+2️⃣ Left side
+3️⃣ Right side
+4️⃣ On the wall
+---
+
+>>> 15550001111 sends "1"
+<<< to=15550001111 kind=image
+
+---
+<<< to=15550001111 kind=text
+How does it look?
+1️⃣ Bigger
+2️⃣ Smaller
+3️⃣ Perfect — send to prospect ✨
+4️⃣ Start over
+---
+
+>>> 15550001111 sends "3"
+<<< to=15550003333 kind=image
+✨ पाहा, तुमच्याच खोलीत Aria Chair!
+💰 किंमत: ₹189.00
+
+लिहा:
+1️⃣ मला हवी आहे! 👍
+2️⃣ दुसऱ्या जागी ठेवून पाहा
+3️⃣ दुसरं उत्पादन दाखवा
+4️⃣ मला डिझायनरशी बोलायचं आहे
+---
+<<< to=15550001111 kind=text
+✨ Preview sent to the prospect with pricing!
+---
+<<< to=15550001111 kind=text
+🪑 Studio home:
+1️⃣ Catalog
+2️⃣ Studio (room photos)
+3️⃣ Orders
+4️⃣ Marketing
+---
+
+###### 7. DB STATE AFTER RENDERS ######
+
+### visualization record
+{'id': 10, 'prospect_id': 5, 'designer_id': 2, 'room_media_id': 6, 'placements': [{'product_id': 3, 'preset': 'floor-center', 'scale': 1.0}], 'rendered_ref': 'local:renders/viz-3-b3c01ae2.jpg', 'status': 'sent', 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 363149, tzinfo=datetime.timezone.utc)}
+
+### quote record
+{'id': 11, 'visualization_id': 10, 'line_items': [{'name': 'Aria Chair', 'price_cents': 18900, 'qty': 1, 'line_total_cents': 18900}], 'subtotal_cents': 18900, 'delivery_cents': 0, 'total_cents': 18900, 'currency': 'USD', 'status': 'open', 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 363359, tzinfo=datetime.timezone.utc)}
+
+### quote rendered for en viewer:
+  Aria Chair × 1 — $189.00
+  Total — $189.00
+
+### same quote rendered for mr viewer:
+  Aria Chair × 1 — ₹189.00
+  Total — ₹189.00
+
+### visualization record
+{'id': 12, 'prospect_id': 8, 'designer_id': 2, 'room_media_id': 9, 'placements': [{'product_id': 3, 'preset': 'floor-center', 'scale': 1.0}], 'rendered_ref': 'local:renders/viz-3-069f491d.jpg', 'status': 'sent', 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 400286, tzinfo=datetime.timezone.utc)}
+
+### quote record
+{'id': 13, 'visualization_id': 12, 'line_items': [{'name': 'Aria Chair', 'price_cents': 18900, 'qty': 1, 'line_total_cents': 18900}], 'subtotal_cents': 18900, 'delivery_cents': 0, 'total_cents': 18900, 'currency': 'USD', 'status': 'open', 'created_at': datetime.datetime(2026, 9, 8, 0, 6, 0, 400477, tzinfo=datetime.timezone.utc)}
+
+### quote rendered for en viewer:
+  Aria Chair × 1 — $189.00
+  Total — $189.00
+
+### same quote rendered for mr viewer:
+  Aria Chair × 1 — ₹189.00
+  Total — ₹189.00
+
+###### 8. display_name + format_money (engine functions) ######
+prospect_name(Asha record)   = 'Asha'
+designer_name(Casa record)   = 'Casa Studio'
+display_name(Asha record)    = 'Asha'
+en viewer 18900c -> $189.00
+mr viewer 18900c -> ₹189.00
+currency_for_locale('mr') = INR
+currency_for_locale('en') = USD
+
